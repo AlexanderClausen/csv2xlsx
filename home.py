@@ -56,6 +56,7 @@ if len(uploaded_files) > 0:
                         for filename in z.namelist():
                             if filename.endswith('.csv'):
                                 if auto_conversion:
+                                    st.write(f"📄 Reading file: **{uploaded_file.name}**")
                                     df = pd.read_csv(os.path.join(tmpdirname, filename))
 
                                     # Automatic conversion to numeric logic
