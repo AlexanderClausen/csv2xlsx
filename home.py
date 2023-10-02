@@ -7,7 +7,18 @@ import base64
 from datetime import datetime
 
 # Upload comma-separated CSV file(s)
-uploaded_files = st.file_uploader("Choose a CSV file", accept_multiple_files=True, type=['csv', 'zip'])
+uploaded_files = st.file_uploader(
+    "Choose a CSV file",
+    accept_multiple_files=True,
+    type=['csv', 'zip'],
+    )
+
+# Option to toggle automatic type conversion (e.g. 1,000 to 1000)
+auto_conversion = st.toggle(
+    "Automatic type conversion",
+    value=False,
+    help="Sometimes, numbers are stored as text in CSV files. The delimiters and thousands separators may not work properly in that case. This option will automatically convert them to numbers. If you are not sure, leave this option disabled and check the result."
+    )
 
 # Initiate data dictionary
 data = {}
@@ -16,18 +27,54 @@ data = {}
 def file_name():
     return str(datetime.now().strftime("%Y-%m-%d_%H-%M_csv2xlsx_export"))
 
-# Iterate through each uploaded file and check if they are CSV or ZIP
-for uploaded_file in uploaded_files:
-    if uploaded_file.name.endswith('.csv'):
-        data[uploaded_file.name] = pd.read_csv(uploaded_file)
+if len(uploaded_files) > 0:
+    with st.status("Display progress"):
+        # Iterate through each uploaded file and check if they are CSV or ZIP
+        for uploaded_file in uploaded_files:
+            if uploaded_file.name.endswith('.csv'):
+                if auto_conversion:
+                    st.write(f"📄 Reading file: **{uploaded_file.name}**")
+                    df = pd.read_csv(uploaded_file)
 
-    elif uploaded_file.name.endswith('.zip'):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            with zipfile.ZipFile(uploaded_file) as z:
-                z.extractall(tmpdirname)
-                for filename in z.namelist():
-                    if filename.endswith('.csv'):
-                        data[filename] = pd.read_csv(os.path.join(tmpdirname, filename))
+                    # Automatic conversion to numeric logic
+                    for col in df.columns:
+                        try:
+                            df[col] = pd.to_numeric(df[col].str.replace(",", "").str.replace("\"", ""), errors='raise')
+                            st.write(f"⚠️ Automatically converted column in **{uploaded_file.name}**: {col}")
+                        except:
+                            pass
+
+                        data[uploaded_file.name] = df
+                        st.write(f"💾 Data from file **{uploaded_file.name}** was successfully processed")
+                else:
+                    st.write(f"📄 Reading file: **{uploaded_file.name}**")
+                    data[uploaded_file.name] = pd.read_csv(uploaded_file)
+                    st.write(f"💾 Data from file **{uploaded_file.name}** was successfully processed")
+
+            elif uploaded_file.name.endswith('.zip'):
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    with zipfile.ZipFile(uploaded_file) as z:
+                        z.extractall(tmpdirname)
+                        for filename in z.namelist():
+                            if filename.endswith('.csv'):
+                                if auto_conversion:
+                                    df = pd.read_csv(os.path.join(tmpdirname, filename))
+
+                                    # Automatic conversion to numeric logic
+                                    for col in df.columns:
+                                        try:
+                                            df[col] = pd.to_numeric(df[col].str.replace(",", "").str.replace("\"", ""), errors='raise')
+                                            st.write(f"⚠️ Automatically converted column in **{filename}**: {col}")
+                                        except:
+                                            pass
+
+                                    data[filename] = df
+                                else:
+                                    st.write(f"📄 Reading file: **{filename}**")
+                                    data[filename] = pd.read_csv(os.path.join(tmpdirname, filename))
+                                    st.write(f"💾 Data from file **{filename}** was successfully processed")
+                            else:
+                                st.warning(f"⚠️ File **{filename}** is not a CSV file. Skipping...")
 
 # Preview
 if len(data) > 0:
