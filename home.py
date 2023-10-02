@@ -44,12 +44,10 @@ if len(uploaded_files) > 0:
                         except:
                             pass
 
-                        data[uploaded_file.name] = df
-                        st.write(f"💾 Data from file **{uploaded_file.name}** was successfully processed")
+                    data[uploaded_file.name] = df
                 else:
                     st.write(f"📄 Reading file: **{uploaded_file.name}**")
                     data[uploaded_file.name] = pd.read_csv(uploaded_file)
-                    st.write(f"💾 Data from file **{uploaded_file.name}** was successfully processed")
 
             elif uploaded_file.name.endswith('.zip'):
                 with tempfile.TemporaryDirectory() as tmpdirname:
@@ -72,7 +70,6 @@ if len(uploaded_files) > 0:
                                 else:
                                     st.write(f"📄 Reading file: **{filename}**")
                                     data[filename] = pd.read_csv(os.path.join(tmpdirname, filename))
-                                    st.write(f"💾 Data from file **{filename}** was successfully processed")
                             else:
                                 st.warning(f"⚠️ File **{filename}** is not a CSV file. Skipping...")
 
